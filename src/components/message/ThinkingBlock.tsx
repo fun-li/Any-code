@@ -71,6 +71,43 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
 
   // 显示的文本内容
   const textToDisplay = isStreaming ? displayedText : content;
+  
+  // 处理分割符：将 ---divider--- 替换为可视化的分割线组件
+  // 如果内容中包含分割符，说明是聚合后的多段思考
+  const renderContent = () => {
+    // 移除用于打字机计算的分割符干扰（虽然 useTypewriter 可能已经处理了纯文本）
+    // 但在渲染阶段，我们需要将 textToDisplay 按分割符切分
+    const parts = textToDisplay.split('---divider---');
+    
+    if (parts.length === 1) {
+      return (
+        <>
+          {textToDisplay}
+          {/* 打字中光标 */}
+          {isTyping && (
+            <span className="inline-block w-1 h-3 ml-0.5 bg-amber-500 animate-pulse rounded-sm" />
+          )}
+        </>
+      );
+    }
+    
+    return parts.map((part, index) => (
+      <React.Fragment key={index}>
+        {index > 0 && (
+          <div className="flex items-center gap-2 my-3 opacity-50 select-none">
+            <div className="h-px bg-amber-500/30 flex-1" />
+            <div className="text-[10px] text-amber-700/50 dark:text-amber-300/50 font-mono">STEP {index + 1}</div>
+            <div className="h-px bg-amber-500/30 flex-1" />
+          </div>
+        )}
+        <span>{part.trim()}</span>
+        {/* 只在最后一部分且正在打字时显示光标 */}
+        {index === parts.length - 1 && isTyping && (
+          <span className="inline-block w-1 h-3 ml-0.5 bg-amber-500 animate-pulse rounded-sm" />
+        )}
+      </React.Fragment>
+    ));
+  };
 
   // 如果不是流式输出且内容已经存在（历史消息），直接标记为已完成
   useEffect(() => {
@@ -137,12 +174,7 @@ export const ThinkingBlock: React.FC<ThinkingBlockProps> = ({
           title={isTyping ? "双击跳过打字效果" : undefined}
         >
           <div className="text-xs text-muted-foreground/80 whitespace-pre-wrap font-mono leading-relaxed max-h-[400px] overflow-y-auto">
-            {textToDisplay}
-
-            {/* 打字中光标 */}
-            {isTyping && (
-              <span className="inline-block w-1 h-3 ml-0.5 bg-amber-500 animate-pulse rounded-sm" />
-            )}
+            {renderContent()}
           </div>
         </div>
       </div>

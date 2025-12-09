@@ -74,6 +74,8 @@ const hasThinkingBlock = (message: ClaudeStreamMessage): boolean => {
 
 /**
  * 提取思考块内容
+ * 
+ * ✅ FIX: 使用特殊的分隔符连接多个思考块，以便 ThinkingBlock 组件能够识别并渲染分割线
  */
 const extractThinkingContent = (message: ClaudeStreamMessage): string => {
   if (!message.message?.content) return '';
@@ -82,7 +84,9 @@ const extractThinkingContent = (message: ClaudeStreamMessage): string => {
   if (!Array.isArray(content)) return '';
 
   const thinkingBlocks = content.filter((item: any) => item.type === 'thinking');
-  return thinkingBlocks.map((item: any) => item.thinking || '').join('\n\n');
+  // 使用特殊的不可见分隔符+换行符，以便 ThinkingBlock 可以识别分割点
+  // 使用 ---divider--- 作为明确的分割标记
+  return thinkingBlocks.map((item: any) => item.thinking || '').join('\n\n---divider---\n\n');
 };
 
 /**
