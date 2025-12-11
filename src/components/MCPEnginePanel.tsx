@@ -32,7 +32,11 @@ interface MCPEnginePanelProps {
    */
   engineLabel: string;
   /**
-   * 引擎图标颜色
+   * 引擎图标组件
+   */
+  EngineIcon: React.ComponentType<{ className?: string }>;
+  /**
+   * 引擎主题色
    */
   engineColor: string;
   /**
@@ -54,6 +58,7 @@ interface MCPServerItem {
 export const MCPEnginePanel: React.FC<MCPEnginePanelProps> = ({
   engine,
   engineLabel,
+  EngineIcon,
   engineColor,
   className,
 }) => {
@@ -391,7 +396,7 @@ export const MCPEnginePanel: React.FC<MCPEnginePanelProps> = ({
             className="p-2 rounded-lg"
             style={{ backgroundColor: `${engineColor}20` }}
           >
-            <Network className="h-5 w-5" style={{ color: engineColor }} />
+            <EngineIcon className="h-5 w-5" />
           </div>
           <div>
             <h3 className="text-base font-semibold">{engineLabel}</h3>
@@ -433,7 +438,7 @@ export const MCPEnginePanel: React.FC<MCPEnginePanelProps> = ({
             className="p-4 rounded-full mb-4"
             style={{ backgroundColor: `${engineColor}20` }}
           >
-            <Network className="h-12 w-12" style={{ color: engineColor }} />
+            <EngineIcon className="h-12 w-12" />
           </div>
           <p className="text-muted-foreground mb-2 font-medium">
             暂无 MCP 工具

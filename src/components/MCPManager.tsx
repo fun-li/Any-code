@@ -5,6 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { useTranslation } from "@/hooks/useTranslation";
 import { MCPEnginePanel } from "./MCPEnginePanel";
+import { ClaudeIcon } from "./icons/ClaudeIcon";
+import { CodexIcon } from "./icons/CodexIcon";
+import { GeminiIcon } from "./icons/GeminiIcon";
 
 interface MCPManagerProps {
   /**
@@ -71,12 +74,15 @@ export const MCPManager: React.FC<MCPManagerProps> = ({
           >
             <TabsList className="grid w-full max-w-md grid-cols-3">
               <TabsTrigger value="claude" className="gap-2">
+                <ClaudeIcon className="h-4 w-4" />
                 Claude
               </TabsTrigger>
               <TabsTrigger value="codex" className="gap-2">
+                <CodexIcon className="h-4 w-4 text-green-600" />
                 Codex
               </TabsTrigger>
               <TabsTrigger value="gemini" className="gap-2">
+                <GeminiIcon className="h-4 w-4" />
                 Gemini
               </TabsTrigger>
             </TabsList>
@@ -86,7 +92,8 @@ export const MCPManager: React.FC<MCPManagerProps> = ({
               <MCPEnginePanel
                 engine="claude"
                 engineLabel="Claude"
-                engineColor="#8B5CF6"
+                EngineIcon={ClaudeIcon}
+                engineColor="#D97706"
               />
             </TabsContent>
 
@@ -95,6 +102,7 @@ export const MCPManager: React.FC<MCPManagerProps> = ({
               <MCPEnginePanel
                 engine="codex"
                 engineLabel="Codex"
+                EngineIcon={CodexIcon}
                 engineColor="#10B981"
               />
             </TabsContent>
@@ -104,7 +112,8 @@ export const MCPManager: React.FC<MCPManagerProps> = ({
               <MCPEnginePanel
                 engine="gemini"
                 engineLabel="Gemini"
-                engineColor="#3B82F6"
+                EngineIcon={GeminiIcon}
+                engineColor="#4285F4"
               />
             </TabsContent>
           </Tabs>
