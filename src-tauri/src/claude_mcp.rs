@@ -16,17 +16,17 @@ pub struct McpStatus {
     pub server_count: usize,
 }
 
-/// 获取 Claude 配置文件路径
+/// 获取 Claude MCP 配置文件路径
+///
+/// MCP 配置文件路径：
+/// - 默认：~/.claude.json（所有平台统一）
+/// - 如果设置了 CLAUDE_CONFIG_DIR 环境变量，使用派生路径
+///
+/// 注意：~/.claude/settings.json 是 Claude Code CLI 的主配置文件，MCP 配置应该在 ~/.claude.json
 fn user_config_path() -> PathBuf {
     let home_dir = dirs::home_dir().expect("Failed to get home directory");
 
-    // 优先使用 ~/.claude/settings.json（Claude Code CLI 新版）
-    let new_path = home_dir.join(".claude").join("settings.json");
-    if new_path.exists() {
-        return new_path;
-    }
-
-    // 回退到 ~/.claude.json（旧版）
+    // Claude MCP 配置文件固定为 ~/.claude.json（参考 cc-switch 项目实现）
     home_dir.join(".claude.json")
 }
 

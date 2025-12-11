@@ -512,19 +512,16 @@ pub async fn mcp_add_from_claude_desktop(
     // Windows, macOS, Linux 都使用 ~/.claude/ 目录
     let home_dir = dirs::home_dir().ok_or_else(|| "Could not find home directory".to_string())?;
 
-    let possible_paths = vec![
-        // Claude Code CLI 配置文件（所有平台统一）
-        home_dir.join(".claude").join("settings.json"), // 主配置文件
-        home_dir.join(".claude.json"),                  // 旧版配置文件
-    ];
+    // ⚡ 正确路径：Claude MCP 配置固定为 ~/.claude.json（所有平台统一）
+    // 注意：~/.claude/settings.json 是 Claude Code CLI 的主配置文件，而 MCP 配置在 ~/.claude.json
+    let config_path = home_dir.join(".claude.json");
 
-    let config_path = possible_paths
-        .into_iter()
-        .find(|path| path.exists())
-        .ok_or_else(|| {
-            "Claude Code configuration not found. Please make sure Claude Code is installed and configured.\n\
-             Expected: ~/.claude/settings.json or ~/.claude.json".to_string()
-        })?;
+    if !config_path.exists() {
+        return Err(
+            "Claude MCP configuration not found. Please make sure Claude Code is installed and configured.\n\
+             Expected: ~/.claude.json".to_string()
+        );
+    }
 
     // Read and parse the config file
     let config_content = fs::read_to_string(&config_path)
