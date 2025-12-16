@@ -44,8 +44,6 @@ function extractCurrentUsage(messages: ClaudeStreamMessage[]): {
   outputTokens: number;
   cacheCreationTokens: number;
   cacheReadTokens: number;
-  sourceIndex: number;
-  sourceType: string;
 } | null {
   // 从后向前遍历，找到最后一条带有 usage 的消息
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -79,33 +77,16 @@ function extractCurrentUsage(messages: ClaudeStreamMessage[]): {
 
       // 只有当有有效数据时才返回
       if (inputTokens > 0 || cacheCreationTokens > 0 || cacheReadTokens > 0) {
-        // 调试日志
-        console.log('[useContextWindowUsage] Found usage at message index', i, {
-          messageType: message.type,
-          messageSubtype: message.subtype,
-          usageSource: message.message?.usage ? 'message.usage' : 'usage',
-          rawUsage: usage,
-          extracted: {
-            inputTokens,
-            outputTokens,
-            cacheCreationTokens,
-            cacheReadTokens,
-          }
-        });
-
         return {
           inputTokens,
           outputTokens,
           cacheCreationTokens,
           cacheReadTokens,
-          sourceIndex: i,
-          sourceType: message.type,
         };
       }
     }
   }
 
-  console.log('[useContextWindowUsage] No usage data found in', messages.length, 'messages');
   return null;
 }
 
@@ -178,19 +159,6 @@ export function useContextWindowUsage(
     // 格式化显示
     const formattedPercentage = `${percentage.toFixed(1)}%`;
     const formattedTokens = `${formatK(currentTokens)} / ${formatK(contextWindowSize)}`;
-
-    // 调试日志
-    console.log('[useContextWindowUsage] Calculated context window usage:', {
-      currentTokens,
-      contextWindowSize,
-      percentage: percentage.toFixed(2) + '%',
-      level,
-      formula: `${currentUsage.inputTokens} + ${currentUsage.cacheCreationTokens} + ${currentUsage.cacheReadTokens} = ${currentTokens}`,
-      sourceMessage: {
-        index: currentUsage.sourceIndex,
-        type: currentUsage.sourceType,
-      }
-    });
 
     return {
       currentTokens,
