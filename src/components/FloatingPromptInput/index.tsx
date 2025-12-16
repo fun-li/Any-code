@@ -99,16 +99,35 @@ const FloatingPromptInputInner = (
     }
   }, []);
 
-  // Initialize thinking mode from localStorage
+  // Initialize thinking mode from settings.json (source of truth)
+  // 🔥 修复：从 settings.json 读取 MAX_THINKING_TOKENS 的真实状态，而不是仅依赖 localStorage
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem('thinking_mode');
-      if (stored === 'off' || stored === 'on') {
-        dispatch({ type: "SET_THINKING_MODE", payload: stored });
+    const initThinkingMode = async () => {
+      try {
+        // 从 settings.json 读取真实状态
+        const settings = await api.getClaudeSettings();
+        const hasMaxThinkingTokens = settings?.env?.MAX_THINKING_TOKENS !== undefined;
+        const actualMode = hasMaxThinkingTokens ? 'on' : 'off';
+
+        dispatch({ type: "SET_THINKING_MODE", payload: actualMode });
+
+        // 同步更新 localStorage 以保持一致
+        localStorage.setItem('thinking_mode', actualMode);
+      } catch (error) {
+        console.error('[ThinkingMode] Failed to read settings, falling back to localStorage:', error);
+        // 降级：从 localStorage 读取
+        try {
+          const stored = localStorage.getItem('thinking_mode');
+          if (stored === 'off' || stored === 'on') {
+            dispatch({ type: "SET_THINKING_MODE", payload: stored });
+          }
+        } catch {
+          // Ignore error
+        }
       }
-    } catch {
-      // Ignore error
-    }
+    };
+
+    initThinkingMode();
   }, []);
 
   // Sync external config changes
