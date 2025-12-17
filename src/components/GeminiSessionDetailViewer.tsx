@@ -7,7 +7,7 @@
  * - Timestamps and metadata
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { api } from '@/lib/api';
 import type { GeminiSessionDetail } from '@/types/gemini';
 import { Button } from '@/components/ui/button';
@@ -39,12 +39,26 @@ export const GeminiSessionDetailViewer: React.FC<GeminiSessionDetailViewerProps>
   const [session, setSession] = useState<GeminiSessionDetail | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const messagesScrollRef = useRef<HTMLDivElement>(null);
+  const autoScrolledSessionIdRef = useRef<string | null>(null);
 
   useEffect(() => {
     if (projectPath && sessionId) {
       loadSession();
     }
   }, [projectPath, sessionId]);
+
+  // 进入历史会话详情时，默认滚动到最底部以显示最新消息
+  useLayoutEffect(() => {
+    if (!session) return;
+    if (autoScrolledSessionIdRef.current === sessionId) return;
+
+    const el = messagesScrollRef.current;
+    if (!el) return;
+
+    el.scrollTop = el.scrollHeight;
+    autoScrolledSessionIdRef.current = sessionId;
+  }, [session, sessionId]);
 
   const loadSession = async () => {
     if (!projectPath || !sessionId) return;
@@ -350,7 +364,7 @@ export const GeminiSessionDetailViewer: React.FC<GeminiSessionDetailViewerProps>
       </div>
 
       {/* Messages */}
-      <ScrollArea className="flex-1">
+      <ScrollArea ref={messagesScrollRef} className="flex-1">
         <div className="divide-y">
           {session.messages.length === 0 ? (
             <div className="flex items-center justify-center p-8 text-center">

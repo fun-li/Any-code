@@ -69,7 +69,7 @@ export function useSmartAutoScroll(config: SmartAutoScrollConfig): SmartAutoScro
   );
 
   // Helper to perform auto-scroll safely
-  const performAutoScroll = () => {
+  const performAutoScroll = (behavior: ScrollBehavior = 'smooth') => {
     if (parentRef.current) {
       const scrollElement = parentRef.current;
       // Check if we actually need to scroll to avoid unnecessary events
@@ -80,7 +80,7 @@ export function useSmartAutoScroll(config: SmartAutoScrollConfig): SmartAutoScro
         isAutoScrollingRef.current = true;
         scrollElement.scrollTo({
           top: targetScrollTop,
-          behavior: 'smooth'
+          behavior
         });
       }
     }
@@ -154,6 +154,24 @@ export function useSmartAutoScroll(config: SmartAutoScrollConfig): SmartAutoScro
   }, [isLoading, shouldAutoScroll, userScrolled]);
 
   // 🆕 当消息内容变化时触发额外滚动（确保流式输出时跟踪最新内容）
+  // 进入历史会话/初次渲染时，虚拟列表的测量会在短时间内不断修正高度，导致首次滚动不到真正的底部。
+  // 在非流式状态下提供一个短暂的“粘底”窗口，确保最终停在最新消息处。
+  useEffect(() => {
+    if (isLoading) return;
+    if (!shouldAutoScroll || userScrolled || displayableMessages.length === 0) return;
+
+    let ticks = 0;
+    const intervalId = setInterval(() => {
+      ticks += 1;
+      performAutoScroll('auto');
+      if (ticks >= 8) {
+        clearInterval(intervalId);
+      }
+    }, 100);
+
+    return () => clearInterval(intervalId);
+  }, [lastMessageHash, isLoading, shouldAutoScroll, userScrolled, displayableMessages.length]);
+
   useEffect(() => {
     if (shouldAutoScroll && !userScrolled && displayableMessages.length > 0) {
       // 使用 requestAnimationFrame 确保在 DOM 更新后滚动
