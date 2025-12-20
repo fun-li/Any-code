@@ -296,27 +296,123 @@ pub async fn open_skills_directory(project_path: Option<String>) -> Result<Strin
 }
 
 /// List all installed plugins
+///
+/// Claude Code stores installed plugins in:
+/// - ~/.claude/plugins/installed_plugins.json (main config file)
+/// - ~/.claude/plugins/cache/<marketplace>/<plugin>/<version>/ (plugin files)
 #[tauri::command]
-pub async fn list_plugins(project_path: Option<String>) -> Result<Vec<PluginInfo>, String> {
+pub async fn list_plugins(_project_path: Option<String>) -> Result<Vec<PluginInfo>, String> {
     info!("Listing installed plugins");
     let mut plugins = Vec::new();
 
-    // User-level plugins (~/.claude/plugins/)
+    // Read from installed_plugins.json
     if let Ok(claude_dir) = get_claude_dir() {
-        let user_plugins_dir = claude_dir.join("plugins");
-        if user_plugins_dir.exists() {
-            plugins.extend(scan_plugins_directory(&user_plugins_dir)?);
+        let installed_plugins_path = claude_dir.join("plugins").join("installed_plugins.json");
+
+        if installed_plugins_path.exists() {
+            debug!("Reading installed_plugins.json from {:?}", installed_plugins_path);
+
+            if let Ok(content) = fs::read_to_string(&installed_plugins_path) {
+                if let Ok(installed) = serde_json::from_str::<serde_json::Value>(&content) {
+                    // Parse plugins from installed_plugins.json
+                    // Format: { "version": 2, "plugins": { "plugin-name@marketplace": [{ scope, installPath, ... }] } }
+                    if let Some(plugins_obj) = installed.get("plugins").and_then(|p| p.as_object()) {
+                        for (plugin_key, installations) in plugins_obj {
+                            // plugin_key format: "plugin-name@marketplace"
+                            let parts: Vec<&str> = plugin_key.split('@').collect();
+                            let plugin_name = parts.first().unwrap_or(&"unknown").to_string();
+                            let marketplace = parts.get(1).map(|s| s.to_string());
+
+                            // Get the first (active) installation
+                            if let Some(installation) = installations.as_array().and_then(|arr| arr.first()) {
+                                let install_path = installation
+                                    .get("installPath")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or("");
+
+                                let version = installation
+                                    .get("version")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or("0.0.0")
+                                    .to_string();
+
+                                let scope = installation
+                                    .get("scope")
+                                    .and_then(|v| v.as_str())
+                                    .unwrap_or("user")
+                                    .to_string();
+
+                                let enabled = !installation
+                                    .get("disabled")
+                                    .and_then(|v| v.as_bool())
+                                    .unwrap_or(false);
+
+                                // Read plugin.json from install path for detailed info
+                                let install_dir = Path::new(install_path);
+                                let plugin_json_path = install_dir.join(".claude-plugin").join("plugin.json");
+
+                                let (description, author) = if plugin_json_path.exists() {
+                                    if let Ok(manifest_content) = fs::read_to_string(&plugin_json_path) {
+                                        if let Ok(manifest) = serde_json::from_str::<serde_json::Value>(&manifest_content) {
+                                            let desc = manifest
+                                                .get("description")
+                                                .and_then(|v| v.as_str())
+                                                .map(|s| s.to_string());
+
+                                            let auth = manifest
+                                                .get("author")
+                                                .and_then(|v| v.get("name"))
+                                                .and_then(|v| v.as_str())
+                                                .map(|s| s.to_string());
+
+                                            (desc, auth)
+                                        } else {
+                                            (None, None)
+                                        }
+                                    } else {
+                                        (None, None)
+                                    }
+                                } else {
+                                    (None, None)
+                                };
+
+                                // Count components from the install directory
+                                let components = if install_dir.exists() {
+                                    count_plugin_components(install_dir)
+                                } else {
+                                    PluginComponents {
+                                        commands: 0,
+                                        agents: 0,
+                                        skills: 0,
+                                        hooks: 0,
+                                        mcp_servers: 0,
+                                    }
+                                };
+
+                                plugins.push(PluginInfo {
+                                    name: plugin_name,
+                                    description,
+                                    version,
+                                    author,
+                                    marketplace,
+                                    path: install_path.to_string(),
+                                    enabled,
+                                    components,
+                                });
+
+                                debug!("Found plugin: {} (scope: {}, enabled: {})",
+                                    plugin_key, scope, enabled);
+                            }
+                        }
+                    }
+                }
+            }
+        } else {
+            debug!("installed_plugins.json not found at {:?}", installed_plugins_path);
         }
     }
 
-    // Project-level plugins (.claude/plugins/)
-    if let Some(proj_path) = project_path {
-        let project_plugins_dir = Path::new(&proj_path).join(".claude").join("plugins");
-        if project_plugins_dir.exists() {
-            plugins.extend(scan_plugins_directory(&project_plugins_dir)?);
-        }
-    }
-
+    info!("Found {} installed plugins", plugins.len());
     Ok(plugins)
 }
 
