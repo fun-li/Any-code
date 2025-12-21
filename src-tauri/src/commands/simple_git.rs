@@ -140,31 +140,6 @@ pub fn git_current_commit(project_path: &str) -> Result<String, String> {
 /// Commit all changes with a message
 /// Returns: Ok(true) if committed, Ok(false) if no changes, Err if failed
 pub fn git_commit_changes(project_path: &str, message: &str) -> Result<bool, String> {
-    // Check if there are any changes
-    let mut status_cmd = Command::new("git");
-    status_cmd.args(["status", "--porcelain"]);
-    status_cmd.current_dir(project_path);
-
-    #[cfg(target_os = "windows")]
-    status_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
-
-    let status_output = status_cmd
-        .output()
-        .map_err(|e| format!("Failed to check git status: {}", e))?;
-
-    if !status_output.status.success() {
-        return Err(format!(
-            "Git status failed: {}",
-            String::from_utf8_lossy(&status_output.stderr)
-        ));
-    }
-
-    let status_str = String::from_utf8_lossy(&status_output.stdout);
-    if status_str.trim().is_empty() {
-        // No changes to commit
-        return Ok(false);
-    }
-
     // Stage all changes
     let mut add_cmd = Command::new("git");
     add_cmd.args(["add", "-A"]);
@@ -181,6 +156,30 @@ pub fn git_commit_changes(project_path: &str, message: &str) -> Result<bool, Str
         return Err(format!(
             "Git add failed: {}",
             String::from_utf8_lossy(&add_output.stderr)
+        ));
+    }
+
+    // Check if there are staged changes (handles untracked even when status.showUntrackedFiles=no)
+    let mut diff_cmd = Command::new("git");
+    diff_cmd.args(["diff", "--cached", "--quiet"]);
+    diff_cmd.current_dir(project_path);
+
+    #[cfg(target_os = "windows")]
+    diff_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+    let diff_output = diff_cmd
+        .output()
+        .map_err(|e| format!("Failed to check staged changes: {}", e))?;
+
+    if diff_output.status.success() {
+        // No staged changes to commit
+        return Ok(false);
+    }
+
+    if diff_output.status.code() != Some(1) {
+        return Err(format!(
+            "Git diff --cached failed: {}",
+            String::from_utf8_lossy(&diff_output.stderr)
         ));
     }
 
