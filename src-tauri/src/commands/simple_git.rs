@@ -182,6 +182,38 @@ pub fn git_commit_changes(project_path: &str, message: &str) -> Result<bool, Str
     Ok(true)
 }
 
+/// Check if two commits have different tree contents
+/// Returns Ok(true) if there are changes, Ok(false) if trees are identical
+pub fn git_has_changes_between_commits(
+    project_path: &str,
+    commit_before: &str,
+    commit_after: &str,
+) -> Result<bool, String> {
+    let mut diff_cmd = Command::new("git");
+    diff_cmd.args(["diff", "--quiet", commit_before, commit_after]);
+    diff_cmd.current_dir(project_path);
+
+    #[cfg(target_os = "windows")]
+    diff_cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+
+    let diff_output = diff_cmd
+        .output()
+        .map_err(|e| format!("Failed to diff commits: {}", e))?;
+
+    if diff_output.status.success() {
+        return Ok(false);
+    }
+
+    if diff_output.status.code() == Some(1) {
+        return Ok(true);
+    }
+
+    Err(format!(
+        "Git diff failed: {}",
+        String::from_utf8_lossy(&diff_output.stderr)
+    ))
+}
+
 /// Reset repository to a specific commit
 /// ⚠️ DEPRECATED: Use git_revert_range for precise rollback instead
 /// This function will lose all commits after the target commit!
@@ -752,3 +784,4 @@ pub fn check_reset_safety(
         warning,
     })
 }
+

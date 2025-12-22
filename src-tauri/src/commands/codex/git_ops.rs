@@ -768,6 +768,32 @@ pub async fn revert_codex_to_prompt(
                     }
                 };
 
+                let has_changes = match simple_git::git_has_changes_between_commits(
+                    &project_path,
+                    &record.commit_before,
+                    &commit_after,
+                ) {
+                    Ok(value) => value,
+                    Err(e) => {
+                        log::warn!(
+                            "[Codex Precise Revert] Failed to check changes for prompt #{}: {}",
+                            record.prompt_index,
+                            e
+                        );
+                        revert_failed = true;
+                        failure_message = e;
+                        break;
+                    }
+                };
+
+                if !has_changes {
+                    log::debug!(
+                        "[Codex Precise Revert] Skipping prompt #{} - empty commit",
+                        record.prompt_index
+                    );
+                    continue;
+                }
+
                 log::info!(
                     "[Codex Precise Revert] Reverting prompt #{}: {}..{}",
                     record.prompt_index,
@@ -889,6 +915,32 @@ pub async fn revert_codex_to_prompt(
                         continue;
                     }
                 };
+
+                let has_changes = match simple_git::git_has_changes_between_commits(
+                    &project_path,
+                    &record.commit_before,
+                    &commit_after,
+                ) {
+                    Ok(value) => value,
+                    Err(e) => {
+                        log::warn!(
+                            "[Codex Precise Revert] Failed to check changes for prompt #{}: {}",
+                            record.prompt_index,
+                            e
+                        );
+                        revert_failed = true;
+                        failure_message = e;
+                        break;
+                    }
+                };
+
+                if !has_changes {
+                    log::debug!(
+                        "[Codex Precise Revert] Skipping prompt #{} - empty commit",
+                        record.prompt_index
+                    );
+                    continue;
+                }
 
                 log::info!(
                     "[Codex Precise Revert] Reverting prompt #{}: {}..{}",

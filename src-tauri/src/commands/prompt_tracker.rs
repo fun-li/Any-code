@@ -774,6 +774,29 @@ pub async fn revert_to_prompt(
                     }
                 };
 
+                let has_changes = match simple_git::git_has_changes_between_commits(
+                    &project_path,
+                    &record.commit_before,
+                    &commit_after,
+                ) {
+                    Ok(value) => value,
+                    Err(e) => {
+                        log::warn!(
+                            "[Precise Revert] Failed to check changes for prompt #{}: {}",
+                            idx,
+                            e
+                        );
+                        revert_failed = true;
+                        failure_message = e;
+                        break;
+                    }
+                };
+
+                if !has_changes {
+                    log::debug!("[Precise Revert] Skipping prompt #{} - empty commit", idx);
+                    continue;
+                }
+
                 log::info!(
                     "[Precise Revert] Reverting prompt #{}: {}..{}",
                     idx,
@@ -892,6 +915,29 @@ pub async fn revert_to_prompt(
                         continue;
                     }
                 };
+
+                let has_changes = match simple_git::git_has_changes_between_commits(
+                    &project_path,
+                    &record.commit_before,
+                    &commit_after,
+                ) {
+                    Ok(value) => value,
+                    Err(e) => {
+                        log::warn!(
+                            "[Precise Revert] Failed to check changes for prompt #{}: {}",
+                            idx,
+                            e
+                        );
+                        revert_failed = true;
+                        failure_message = e;
+                        break;
+                    }
+                };
+
+                if !has_changes {
+                    log::debug!("[Precise Revert] Skipping prompt #{} - empty commit", idx);
+                    continue;
+                }
 
                 log::info!(
                     "[Precise Revert] Reverting prompt #{}: {}..{}",
